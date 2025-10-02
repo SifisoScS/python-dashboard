@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Beautiful Python Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .chart {
+            width: 100%;
+            height: 400px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #6366F1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>✨ Beautiful Python Dashboard</h1>
+            <p>Real-time Analytics & Data Visualization</p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-value" id="totalRevenue">Loading...</div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value" id="avgDailySales">Loading...</div>
+                <div class="stat-label">Avg Daily Sales</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🏷️</div>
+                <div class="stat-value" id="totalCategories">Loading...</div>
+                <div class="stat-label">Product Categories</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-value" id="growthRate">Loading...</div>
+                <div class="stat-label">Growth Rate</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <div class="chart-container">
+                <div class="chart-title">📈 Sales Performance Trend</div>
+                <div class="chart" id="salesChart">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading chart...
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">💰 Revenue by Category</div>
+                <div class="chart" id="revenueChart">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading chart...
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">🔥 Sales Heatmap (Day vs Month)</div>
+                <div class="chart" id="heatmapChart">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading chart...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Built with ❤️ using Python Flask & Docker | Real-time Data Visualization</p>
+        </div>
+    </div>
+
+    <script>
+        // Load charts and statistics when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            
+            // Refresh data every 30 seconds
+            setInterval(loadDashboardData, 30000);
+        });
+
+        async function loadDashboardData() {
+            try {
+                // Load statistics
+                const statsResponse = await fetch('/api/stats');
+                const statsData = await statsResponse.json();
+                
+                document.getElementById('totalRevenue').textContent = statsData.total_revenue;
+                document.getElementById('avgDailySales').textContent = statsData.avg_daily_sales;
+                document.getElementById('totalCategories').textContent = statsData.total_categories;
+                document.getElementById('growthRate').textContent = statsData.growth_rate;
+
+                // Load charts
+                const chartsResponse = await fetch('/api/charts');
+                const chartsData = await chartsResponse.json();
+
+                // Render charts
+                Plotly.react('salesChart', chartsData.sales_chart.data, chartsData.sales_chart.layout);
+                Plotly.react('revenueChart', chartsData.revenue_chart.data, chartsData.revenue_chart.layout);
+                Plotly.react('heatmapChart', chartsData.heatmap_chart.data, chartsData.heatmap_chart.layout);
+
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                
+                // Show error messages
+                const errorElements = document.querySelectorAll('.stat-value, .chart');
+                errorElements.forEach(el => {
+                    if (el.classList.contains('stat-value')) {
+                        el.textContent = 'Error';
+                    } else if (el.classList.contains('chart')) {
+                        el.innerHTML = '<div class="loading">Error loading chart</div>';
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
