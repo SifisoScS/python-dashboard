@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ Beautiful Python Dashboard</title>
+    <title>✨ SQL Server Dashboard</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -26,7 +27,7 @@
 
         .header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 20px;
             color: white;
         }
 
@@ -39,6 +40,58 @@
         .header p {
             font-size: 1.2rem;
             opacity: 0.9;
+        }
+
+        .data-status {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            margin: 0 auto;
+            font-size: 1.1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .real-data {
+            background: rgba(34, 197, 94, 0.2);
+            color: #16a34a;
+            border: 2px solid #16a34a;
+        }
+
+        .sample-data {
+            background: rgba(234, 179, 8, 0.2);
+            color: #ca8a04;
+            border: 2px solid #ca8a04;
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .control-panel button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-panel button:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
 
         .stats-grid {
@@ -143,6 +196,14 @@
             opacity: 0.8;
         }
 
+        .database-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
         @media (max-width: 768px) {
             .charts-grid {
                 grid-template-columns: 1fr;
@@ -155,14 +216,39 @@
             .header h1 {
                 font-size: 2rem;
             }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+            }
         }
     </style>
 </head>
 <body>
     <div class="dashboard">
         <div class="header">
-            <h1>✨ Beautiful Python Dashboard</h1>
-            <p>Real-time Analytics & Data Visualization</p>
+            <h1>✨ SQL Server Dashboard</h1>
+            <p>Real-time Analytics with Windows Authentication</p>
+            <div class="database-info">
+                Connected to: SQL Server | Authentication: SQL Server Auth | Data: <span id="dataSource">Live</span>
+            </div>
+        </div>
+
+        <!-- Data Status Indicator -->
+        <div class="data-status" id="dataStatus">
+            <div class="loading">
+                <div class="spinner"></div>
+                Checking database connection...
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button onclick="refreshData()">🔄 Refresh Data</button>
+            <button onclick="testConnection()">🔌 Test Connection</button>
+            <button onclick="exportData()">📊 Export Report</button>
+            <button onclick="showDatabaseInfo()">ℹ️ DB Info</button>
+            <button onclick="showODBCInfo()">🐚 ODBC Info</button>
         </div>
 
         <!-- Statistics Cards -->
@@ -178,9 +264,9 @@
                 <div class="stat-label">Avg Daily Sales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🏷️</div>
-                <div class="stat-value" id="totalCategories">Loading...</div>
-                <div class="stat-label">Product Categories</div>
+                <div class="stat-icon">👥</div>
+                <div class="stat-value" id="activeCustomers">Loading...</div>
+                <div class="stat-label">Active Customers</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon">📈</div>
@@ -196,7 +282,7 @@
                 <div class="chart" id="salesChart">
                     <div class="loading">
                         <div class="spinner"></div>
-                        Loading chart...
+                        Loading sales data...
                     </div>
                 </div>
             </div>
@@ -206,35 +292,70 @@
                 <div class="chart" id="revenueChart">
                     <div class="loading">
                         <div class="spinner"></div>
-                        Loading chart...
+                        Loading revenue data...
                     </div>
                 </div>
             </div>
 
             <div class="chart-container">
-                <div class="chart-title">🔥 Sales Heatmap (Day vs Month)</div>
+                <div class="chart-title">🔥 Sales Heatmap</div>
                 <div class="chart" id="heatmapChart">
                     <div class="loading">
                         <div class="spinner"></div>
-                        Loading chart...
+                        Loading heatmap data...
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="footer">
-            <p>Built with ❤️ using Python Flask & Docker | Real-time Data Visualization</p>
+            <p>Built with ❤️ using Python Flask, SQL Server & Docker | Real-time Data Visualization</p>
         </div>
     </div>
 
     <script>
-        // Load charts and statistics when the page loads
+        // Load dashboard data when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            updateDataStatus();
             loadDashboardData();
             
             // Refresh data every 30 seconds
             setInterval(loadDashboardData, 30000);
         });
+
+        async function updateDataStatus() {
+            try {
+                const statusResponse = await fetch('/api/database-status');
+                const statusData = await statusResponse.json();
+                
+                const statusElement = document.getElementById('dataStatus');
+                const dataSourceElement = document.getElementById('dataSource');
+                
+                if (statusData.connected) {
+                    statusElement.innerHTML = `
+                        <div class="status-indicator real-data">
+                            ✅ Connected to ${statusData.database_type} - Live Data
+                        </div>
+                    `;
+                    dataSourceElement.textContent = 'Live';
+                } else {
+                    statusElement.innerHTML = `
+                        <div class="status-indicator sample-data">
+                            ⚠️ Using Sample Data - Database Connection Failed
+                        </div>
+                    `;
+                    dataSourceElement.textContent = 'Sample';
+                }
+            } catch (error) {
+                console.error('Error checking database status:', error);
+                document.getElementById('dataStatus').innerHTML = `
+                    <div class="status-indicator sample-data">
+                    ❌ Connection Error - Using Sample Data
+                    </div>
+                `;
+                document.getElementById('dataSource').textContent = 'Sample';
+            }
+        }
 
         async function loadDashboardData() {
             try {
@@ -244,8 +365,15 @@
                 
                 document.getElementById('totalRevenue').textContent = statsData.total_revenue;
                 document.getElementById('avgDailySales').textContent = statsData.avg_daily_sales;
-                document.getElementById('totalCategories').textContent = statsData.total_categories;
+                document.getElementById('activeCustomers').textContent = statsData.active_customers;
                 document.getElementById('growthRate').textContent = statsData.growth_rate;
+
+                // Update data source indicator
+                if (statsData.is_real_data) {
+                    document.getElementById('dataSource').textContent = 'Live';
+                } else {
+                    document.getElementById('dataSource').textContent = 'Sample';
+                }
 
                 // Load charts
                 const chartsResponse = await fetch('/api/charts');
@@ -265,10 +393,110 @@
                     if (el.classList.contains('stat-value')) {
                         el.textContent = 'Error';
                     } else if (el.classList.contains('chart')) {
-                        el.innerHTML = '<div class="loading">Error loading chart</div>';
+                        el.innerHTML = '<div class="loading">Error loading chart data</div>';
                     }
                 });
             }
+        }
+
+        // Control Panel Functions
+        function refreshData() {
+            loadDashboardData();
+            showNotification('Data refreshed successfully!');
+        }
+
+        async function testConnection() {
+            try {
+                const response = await fetch('/api/test-connection');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showNotification('✅ Database connection successful!');
+                    console.log('SQL Server Version:', result.version);
+                } else {
+                    showNotification('❌ Database connection failed: ' + result.message);
+                }
+            } catch (error) {
+                showNotification('❌ Connection test failed: ' + error.message);
+            }
+        }
+
+        function exportData() {
+            // Simple export functionality
+            const data = {
+                timestamp: new Date().toISOString(),
+                stats: {
+                    revenue: document.getElementById('totalRevenue').textContent,
+                    growth: document.getElementById('growthRate').textContent
+                }
+            };
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "dashboard-export.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            
+            showNotification('Data exported successfully!');
+        }
+
+        function showDatabaseInfo() {
+            const info = `
+SQL Server Dashboard Information:
+• Backend: Python Flask
+• Database: Microsoft SQL Server
+• Authentication: SQL Server Authentication
+• Visualization: Plotly.js
+• Container: Docker
+• Status: Connected to SQL Server via ODBC
+            `.trim();
+            
+            alert(info);
+        }
+
+        async function showODBCInfo() {
+            try {
+                const statusResponse = await fetch('/api/database-status');
+                const statusData = await statusResponse.json();
+                
+                const info = `
+ODBC Connection Information:
+• pyodbc Available: ${statusData.has_odbc ? '✅ Yes' : '❌ No'}
+• Database Connected: ${statusData.connected ? '✅ Yes' : '❌ No'}
+• Available Drivers: ${statusData.available_drivers.join(', ') || 'None'}
+• Status: ${statusData.message}
+${statusData.server_name ? `• Server: ${statusData.server_name}` : ''}
+${statusData.current_database ? `• Database: ${statusData.current_database}` : ''}
+                `.trim();
+                
+                alert(info);
+            } catch (error) {
+                alert('Error getting ODBC information: ' + error.message);
+            }
+        }
+
+        function showNotification(message) {
+            // Simple notification system
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(255,255,255,0.95);
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                z-index: 1000;
+                border-left: 4px solid #6366F1;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
         }
     </script>
 </body>

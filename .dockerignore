@@ -1,0 +1,24 @@
+# Start with your .gitignore patterns
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+node_modules/
+npm-debug.log*
+.coverage
+.pytest_cache
+
+# Add Docker-specific
+.git
+.gitignore
+.dockerignore
+Dockerfile
+README.md
+docker-compose.yml
+*.md
+logs/
+*.log
